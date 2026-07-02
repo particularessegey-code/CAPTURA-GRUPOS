@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Captura de Grupos por Escuela</title>
+    <style>
+        :root {
+            --primary: #802434; --primary-dark: #5e1a28; --primary-light: #9f1239; 
+            --bg: #fef2f2; --card-bg: #ffffff; --text: #475569; --border: #fecaca; 
+            --success: #10b981; --danger: #991b1b; --accent-cream: #fffbeb; --tab-bg: #f3f4f6;
+        }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); padding: 20px; margin: 0; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .card { background: var(--card-bg); padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 20px; border: 1px solid var(--border); }
+        h1, h2, h3, h4 { color: var(--primary); margin-top: 0; }
+        h1 { text-align: center; }
+        input, select { padding: 10px; border: 1px solid var(--border); border-radius: 6px; width: 100%; box-sizing: border-box; font-family: inherit; transition: border-color 0.2s; }
+        input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(128, 36, 52, 0.1); }
+        input.locked { background-color: #f1f5f9; color: #94a3b8; border-color: transparent; cursor: not-allowed; opacity: 0.8; }
+        
+        .grades-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9rem; }
+        .grades-table th, .grades-table td { border: 1px solid var(--border); padding: 8px; text-align: center; }
+        .grades-table th { background: var(--primary); color: white; font-weight: bold; text-transform: uppercase; }
+        .grades-table input { border: none; text-align: center; background: transparent; width: 100%; color: #334155; font-size: 16px; padding: 5px; box-sizing: border-box; }
+        .grades-table input:focus { background: #ffffff; outline: 2px solid var(--primary-light); color: #000; font-weight: bold; }
+        
+        .btn { padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; width: 100%; margin-top: 10px; transition: background 0.2s; }
+        .btn-primary { background: var(--primary); } .btn-primary:hover { background: var(--primary-dark); }
+        .btn-success { background: var(--success); } .btn-success:hover { background: #0e9f6e; }
+        .btn-danger { background: var(--danger); } .btn-danger:hover { background: #7f1d1d; }
+        .btn-secondary { background: #64748b; } .btn-secondary:hover { background: #475569; }
+        
+        #login-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(128, 36, 52, 0.9); display: flex; justify-content: center; align-items: center; z-index: 5000; }
+        .login-box { background: white; padding: 40px; border-radius: 12px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2); }
+        
+        .result-item { padding: 15px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; border-left: 4px solid transparent; }
+        .result-item:hover { border-left-color: var(--primary); background: var(--bg); }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; color: white; }
+        .badge-cct { background: #64748b; } .badge-turno { background: var(--primary); } .badge-nivel { background: var(--success); }
+        
+        .password-container { position: relative; }
+        .password-toggle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 1.2rem; }
+        .hidden { display: none !important; }
+        
+            .toast { 
+            position: fixed !important; 
+            top: 30px !important; 
+            left: 50% !important; 
+            bottom: auto !important; /* Anula el "bottom" anterior */
+            right: auto !important;  /* Anula el "right" anterior */
+            transform: translateX(-50%) translateY(-150px); 
+            background: #333; 
+            color: white; 
+            padding: 18px 35px; 
+            border-radius: 12px; 
+            opacity: 0; 
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            z-index: 9999; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4); 
+            font-weight: bold; 
+            font-size: 1.2rem; 
+            max-width: 90%; 
+            text-align: center; 
+        }
+        .toast.show { 
+            opacity: 1 !important; 
+            transform: translateX(-50%) translateY(0) !important; 
+        }
+        .toast.success { background: var(--success); border: 4px solid #fff; } 
+        .toast.error { background: var(--danger); border: 4px solid #fff; } 
+        
+        .spinner { border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top: 3px solid white; width: 16px; height: 16px; animation: spin 1s linear infinite; display: inline-block; margin-right: 8px; vertical-align: middle; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-box { background: #f8fafc; padding: 20px; border-radius: 8px; border-left: 4px solid var(--primary); text-align: center; }
+        .stat-number { font-size: 2rem; font-weight: bold; color: var(--primary); display: block; }
+        .stat-label { font-size: 0.9rem; color: #64748b; text-transform: uppercase; }
+        .download-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN -->
+    <div id="login-view">
+      <div class="login-box">
+        <h2 style="color:var(--primary); margin-bottom:20px;">Acceso al Sistema</h2>
+        <input type="text" id="username" placeholder="Usuario" autofocus>
+        <div class="password-container" style="margin: 15px 0 20px 0;">
+            <input type="password" id="password" placeholder="Contraseña">
+            <span class="password-toggle" onclick="togglePassword()">👁️</span>
+        </div>
+        <button class="btn btn-primary" onclick="checkLogin()">Ingresar</button>
+        <div id="login-error" style="color: var(--danger); margin-top: 15px; font-weight: bold; min-height: 20px;"></div>
+      </div>
+    </div>
+
+    <!-- APP -->
+    <div id="app-view" class="hidden">
+        <div class="container">
+            <h1 id="app-title">Captura de Grupos Escolares</h1>
+            
+            <!-- VISTA SUPERVISOR -->
+            <div id="supervisor-view" class="hidden">
+                <div class="card">
+                    <h2>📊 Estadísticas de Captura</h2>
+                    <div class="stats-grid" id="statsGrid">
+                        <div class="stat-box"><span class="stat-number" id="stat-total">0</span><span class="stat-label">Total Escuelas</span></div>
+                        <div class="stat-box"><span class="stat-number" id="stat-capturadas">0</span><span class="stat-label">Capturadas</span></div>
+                        <div class="stat-box"><span class="stat-number" id="stat-faltan">0</span><span class="stat-label">Faltantes</span></div>
+                        <div class="stat-box"><span class="stat-number" id="stat-porcentaje">0%</span><span class="stat-label">Avance</span></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>📥 Descargar Reportes</h2>
+                    <p style="color:#64748b;">Descarga la base de datos filtrada por nivel educativo o completa.</p>
+                    <div class="download-grid">
+                        <button class="btn btn-success" onclick="downloadReport('PREESCOLAR')">Preescolar</button>
+                        <button class="btn btn-success" onclick="downloadReport('PRIMARIA')">Primaria</button>
+                        <button class="btn btn-success" onclick="downloadReport('SECUNDARIA')">Secundaria</button>
+                        <button class="btn btn-primary" onclick="downloadReport('TODOS')">Base Completa</button>
+                    </div>
+                </div>
+                <button class="btn btn-danger" style="max-width:200px; margin: 0 auto;" onclick="logout()">Salir</button>
+            </div>
+
+            <!-- VISTA VISITADOR -->
+            <div id="visitador-view">
+                <div class="card" id="searchCard">
+                    <h2>1. Buscar Escuela</h2>
+                    <div style="display:flex; gap:10px;">
+                       <input type="text" id="searchInput" placeholder="Escribe la Clave CCT..." onkeypress="if(event.key==='Enter') searchSchool()">
+                        <button class="btn btn-primary" style="width:auto; margin-top:0;" onclick="searchSchool()">Buscar</button>
+                    </div>
+                    <div id="resultsList" style="margin-top:20px; max-height: 300px; overflow-y: auto;"></div>
+                </div>
+
+                <div class="card hidden" id="formMain">
+                    <h2>2. Captura de Grupos</h2>
+                    <div style="background:#fff1f2; padding:15px; border-radius:8px; border:1px solid #fecaca; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:20px;">
+                        <div>
+                            <h3 style="margin:0; color:var(--primary);" id="disp-nombre"></h3>
+                            <span class="badge badge-cct" id="disp-cct"></span> <span class="badge badge-turno" id="disp-turno"></span> <span class="badge badge-nivel" id="disp-nivel"></span>
+                        </div>
+                    </div>
+
+                    <form id="mainForm" onsubmit="event.preventDefault(); saveData();">
+                        <input type="hidden" id="rowIndex">
+                        <div style="overflow-x:auto;">
+                            <table class="grades-table">
+                                <thead>
+                                    <tr><th>GRADO</th><th>CANTIDAD DE GRUPOS</th></tr>
+                                </thead>
+                                <tbody id="gradesBody"></tbody>
+                            </table>
+                        </div>
+                        <div style="margin-top:20px; display:flex; gap:10px;">
+                            <button type="submit" class="btn btn-primary" id="btnSave">Guardar Datos</button>
+                            <button type="button" class="btn btn-danger hidden" id="btnLogout" onclick="logout()">Salir</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">Notificación</div>
+
+    <script>
+        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyReSiLW12arNV3kDGb-ZAdUtpm7X8UQgn5WJxjGKlICEW4XFA_YtftUcS7BwPdPQoTig/exec";
+
+        let currentRole = "";
+
+        // --- LOGIN ---
+        async function checkLogin() {
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value.trim();
+            const errorDiv = document.getElementById('login-error');
+            if(!u || !p) { errorDiv.innerText = "Por favor llene ambos campos"; return; }
+
+            const btn = document.querySelector('#login-view button');
+            btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Verificando...';
+
+            try {
+                const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({action:'login', user:u, pass:p}) });
+                const d = await res.json();
+                if(d.success) {
+                    sessionStorage.setItem('authToken', d.token);
+                    currentRole = d.role;
+                    document.getElementById('login-view').style.display = 'none';
+                    document.getElementById('app-view').classList.remove('hidden');
+                    
+                    if(currentRole === 'supervisor') {
+                        document.getElementById('supervisor-view').classList.remove('hidden');
+                        document.getElementById('visitador-view').classList.add('hidden');
+                        document.getElementById('app-title').innerText = "Panel de Supervisor";
+                        loadStats();
+                    } else {
+                        document.getElementById('supervisor-view').classList.add('hidden');
+                        document.getElementById('visitador-view').classList.remove('hidden');
+                        document.getElementById('app-title').innerText = "Captura de Grupos Escolares";
+                        document.getElementById('searchInput').focus();
+                    }
+                } else {
+                    errorDiv.innerText = "Usuario o contraseña incorrectos";
+                }
+            } catch (e) { errorDiv.innerText = "Error de conexión"; } 
+            finally { btn.disabled = false; btn.innerText = "Ingresar"; }
+        }
+
+        function togglePassword() {
+            const input = document.getElementById('password');
+            input.setAttribute('type', input.getAttribute('type') === 'password' ? 'text' : 'password');
+        }
+
+        function logout() { location.reload(); }
+
+        // --- BUSCAR ESCUELA ---
+        async function searchSchool() {
+            const q = document.getElementById('searchInput').value.trim();
+            if(!q) return;
+            const list = document.getElementById('resultsList');
+            list.innerHTML = '<div style="text-align:center; padding:10px;"><span class="spinner" style="border-top-color:var(--primary);"></span> Buscando...</div>';
+            
+            const res = await fetch(`${SCRIPT_URL}?q=${encodeURIComponent(q)}`);
+            const data = await res.json();
+            
+            if(data.length === 0) { list.innerHTML = '<p style="text-center">No se encontro la clave verifiquela.</p>'; return; }
+            
+            list.innerHTML = data.map(r => `
+                <div class="result-item" onclick='selectSchool(${JSON.stringify(r).replace(/'/g, "\\'")})'>
+                    <strong>${r.nombre}</strong><br>
+                    <span class="badge badge-cct">${r.cct}</span> <span class="badge badge-turno">${r.turno}</span> <span class="badge badge-nivel">${r.nivel}</span><br>
+                    <small>${r.municipio} - Área: ${r.area}</small>
+                </div>
+            `).join('');
+        }
+
+        let maxGrades = 6;
+
+            function selectSchool(row) {
+            document.getElementById('formMain').classList.remove('hidden');
+            document.getElementById('resultsList').innerHTML = '';
+
+            document.getElementById('rowIndex').value = row.rowIndex;
+            document.getElementById('disp-nombre').innerText = row.nombre;
+            document.getElementById('disp-cct').innerText = row.cct;
+            document.getElementById('disp-turno').innerText = row.turno;
+            document.getElementById('disp-nivel').innerText = row.nivel;
+
+            const n = row.nivel.toUpperCase();
+            maxGrades = n.includes('PREESCOLAR') || n.includes('SECUNDARIA') ? 3 : 6;
+
+            const tbody = document.getElementById('gradesBody');
+            tbody.innerHTML = '';
+            
+            // Verificar si ya tiene datos guardados
+            const hasData = row.grupos && row.grupos.some(v => v !== "" && v !== null);
+
+            for(let i=0; i<maxGrades; i++) {
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="font-weight:bold; width:40%; text-align:left; padding-left:20px;">${i+1}º Grado</td>
+                        <td><input type="number" name="g_${i}" value="${row.grupos && row.grupos[i] ? row.grupos[i] : ''}" min="0" placeholder="0" ${hasData ? 'class="locked" readonly' : ''}></td>
+                    </tr>`;
+            }
+
+            const btnSave = document.getElementById('btnSave');
+            const btnLogout = document.getElementById('btnLogout');
+
+            if (hasData) {
+                btnSave.classList.add('hidden');
+                btnLogout.classList.remove('hidden');
+                btnLogout.innerText = "Salir / Buscar Otra";
+            } else {
+                // --- ESTO ES LO QUE SE AGREGÓ PARA RESETEAR EL BOTÓN ---
+                btnSave.classList.remove('hidden');
+                btnSave.disabled = false; 
+                btnSave.innerText = "Guardar Datos";
+                //--------------------------------------------------------
+                btnLogout.classList.add('hidden');
+            }
+
+            document.getElementById('formMain').scrollIntoView({behavior:'smooth'});
+        }
+
+        // --- GUARDAR DATOS ---
+        async function saveData() {
+            const inputs = document.querySelectorAll('#gradesBody input');
+            let hasEmpty = false;
+            let firstEmptyInput = null;
+            
+            inputs.forEach(input => {
+                input.classList.remove('input-error');
+                if (input.value === "") { 
+                    input.classList.add('input-error'); 
+                    hasEmpty = true;
+                    if(!firstEmptyInput) firstEmptyInput = input; // Guardar el primer input vacío
+                }
+            });
+
+            if (hasEmpty) { 
+                showToast("⚠️ Debe capturar al menos '0' en todos los grados.", "error"); 
+                if(firstEmptyInput) {
+                    firstEmptyInput.focus(); // Hace scroll y enfoca el campo vacío
+                }
+                return; 
+            }
+            if(!confirm("¿Seguro que desea guardar? No podrán modificarse después.")) return;
+            
+            // ... (aquí continúa el resto de tu código normal)
+
+            const btn = document.getElementById('btnSave');
+            btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Guardando...';
+
+            const grupos = [];
+            inputs.forEach(inp => grupos.push(inp.value));
+
+            const payload = {
+                action: 'saveGroups',
+                token: sessionStorage.getItem('authToken'),
+                rowIndex: document.getElementById('rowIndex').value,
+                grupos: grupos
+            };
+
+            try {
+                const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload), redirect: 'follow' });
+                const d = await res.json();
+
+                if(d.success) {
+                    showToast("Datos guardados y bloqueados", "success");
+                    inputs.forEach(el => { el.readOnly = true; el.classList.add('locked'); });
+                    btn.classList.add('hidden');
+                    document.getElementById('btnLogout').classList.remove('hidden');
+                    document.getElementById('btnLogout').innerText = "Salir / Finalizar";
+                } else {
+                    showToast("Error: " + d.error, "error"); 
+                    btn.disabled = false; btn.innerText = "Guardar Datos";
+                }
+            } catch (e) {
+                showToast("Error de conexión", "error");
+                btn.disabled = false; btn.innerText = "Guardar Datos";
+            }
+        }
+
+        // --- FUNCIONES SUPERVISOR ---
+        async function loadStats() {
+            const res = await fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify({action:'getStats', token: sessionStorage.getItem('authToken')}) });
+            const d = await res.json();
+            if(d.success) {
+                document.getElementById('stat-total').innerText = d.total;
+                document.getElementById('stat-capturadas').innerText = d.capturadas;
+                document.getElementById('stat-faltan').innerText = d.faltan;
+                document.getElementById('stat-porcentaje').innerText = d.porcentaje + "%";
+            }
+        }
+
+        async function downloadReport(nivel) {
+            try {
+                const res = await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'exportData', token: sessionStorage.getItem('authToken'), nivel: nivel })
+                });
+                const d = await res.json();
+
+                if (d.success) {
+                    const bom = "\uFEFF"; 
+                    const blob = new Blob([bom + d.fileContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", d.filename);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    showToast("Descargando reporte...", "success");
+                } else {
+                    showToast("Error: " + d.error, "error");
+                }
+            } catch (e) { showToast("Error al generar el reporte", "error"); }
+        }
+
+        function showToast(msg, type) {
+            const t = document.getElementById('toast');
+            t.innerText = msg; t.className = 'show ' + type;
+            setTimeout(() => t.className = '', 4000);
+        }
+                // --- DETECCIÓN DE TECLA ENTER EN EL LOGIN ---
+        document.getElementById('username').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') document.getElementById('password').focus();
+        });
+        document.getElementById('password').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') checkLogin();
+        });
+    </script>
+</body>
+</html>
