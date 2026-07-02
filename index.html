@@ -218,7 +218,9 @@
         function logout() { location.reload(); }
 
         // --- BUSCAR ESCUELA ---
-        async function searchSchool() {
+            
+            async function searchSchool() {
+            clearToast(); 
             const q = document.getElementById('searchInput').value.trim();
             if(!q) return;
             const list = document.getElementById('resultsList');
@@ -241,6 +243,7 @@
         let maxGrades = 6;
 
             function selectSchool(row) {
+            clearToast();
             document.getElementById('formMain').classList.remove('hidden');
             document.getElementById('resultsList').innerHTML = '';
 
@@ -382,10 +385,33 @@
             } catch (e) { showToast("Error al generar el reporte", "error"); }
         }
 
-        function showToast(msg, type) {
+            let toastTimer;
+            function showToast(msg, type) {
             const t = document.getElementById('toast');
-            t.innerText = msg; t.className = 'show ' + type;
-            setTimeout(() => t.className = '', 4000);
+            
+            // Si había un tiempo de espera corriendo, lo detenemos
+            if(toastTimer) clearTimeout(toastTimer);
+            
+            // Regresamos a la clase base 'toast' (esto lo oculta visualmente)
+            t.className = 'toast'; 
+            t.innerText = msg; 
+            
+            // Forzamos al navegador a reiniciar el proceso
+            void t.offsetWidth; 
+            
+            // Aplicamos las clases nuevas para que aparezca
+            t.className = 'toast show ' + type;
+            
+            // Programamos que desaparezca en 4 segundos
+            toastTimer = setTimeout(() => {
+                t.className = 'toast'; // <--- AQUI ESTABA EL ERROR, solo dejamos la clase base
+            }, 4000);
+        }
+
+        function clearToast() {
+            const t = document.getElementById('toast');
+            if(t) t.className = 'toast'; // <--- Lo mismo aquí
+            if(toastTimer) clearTimeout(toastTimer);
         }
                 // --- DETECCIÓN DE TECLA ENTER EN EL LOGIN ---
         document.getElementById('username').addEventListener('keypress', function (e) {
