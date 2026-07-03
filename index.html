@@ -219,8 +219,11 @@
 
         // --- BUSCAR ESCUELA ---
             
-            async function searchSchool() {
-            clearToast(); 
+                    // Variable global para guardar los resultados y evitar problemas con comillas
+        let searchResultsCache = [];
+
+        async function searchSchool() {
+            clearToast();
             const q = document.getElementById('searchInput').value.trim();
             if(!q) return;
             const list = document.getElementById('resultsList');
@@ -229,10 +232,17 @@
             const res = await fetch(`${SCRIPT_URL}?q=${encodeURIComponent(q)}`);
             const data = await res.json();
             
-            if(data.length === 0) { list.innerHTML = '<p style="text-center">No se encontro la clave verifiquela.</p>'; return; }
+            if(data.length === 0) { 
+                list.innerHTML = '<p style="text-align:center;">No se encontraron escuelas.</p>'; 
+                return; 
+            }
+
+            // Guardamos los resultados en memoria
+            searchResultsCache = data;
             
-            list.innerHTML = data.map(r => `
-                <div class="result-item" onclick='selectSchool(${JSON.stringify(r).replace(/'/g, "\\'")})'>
+            // Usamos el índice (0, 1, 2...) en lugar de pasar todo el texto
+            list.innerHTML = data.map((r, index) => `
+                <div class="result-item" onclick="selectSchool(${index})">
                     <strong>${r.nombre}</strong><br>
                     <span class="badge badge-cct">${r.cct}</span> <span class="badge badge-turno">${r.turno}</span> <span class="badge badge-nivel">${r.nivel}</span><br>
                     <small>${r.municipio} - Área: ${r.area}</small>
@@ -242,8 +252,12 @@
 
         let maxGrades = 6;
 
-            function selectSchool(row) {
+                    function selectSchool(index) {
             clearToast();
+            // Obtenemos la escuela desde nuestra memoria cache
+            const row = searchResultsCache[index];
+            if(!row) return;
+
             document.getElementById('formMain').classList.remove('hidden');
             document.getElementById('resultsList').innerHTML = '';
 
@@ -259,7 +273,6 @@
             const tbody = document.getElementById('gradesBody');
             tbody.innerHTML = '';
             
-            // Verificar si ya tiene datos guardados
             const hasData = row.grupos && row.grupos.some(v => v !== "" && v !== null);
 
             for(let i=0; i<maxGrades; i++) {
@@ -278,11 +291,9 @@
                 btnLogout.classList.remove('hidden');
                 btnLogout.innerText = "Salir / Buscar Otra";
             } else {
-                // --- ESTO ES LO QUE SE AGREGÓ PARA RESETEAR EL BOTÓN ---
                 btnSave.classList.remove('hidden');
                 btnSave.disabled = false; 
                 btnSave.innerText = "Guardar Datos";
-                //--------------------------------------------------------
                 btnLogout.classList.add('hidden');
             }
 
